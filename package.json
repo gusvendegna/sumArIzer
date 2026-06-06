@@ -9,6 +9,7 @@
   "dependencies": {
     "@hono/node-server": "^1.19.14",
     "hono": "^4.12.23",
+    "ollama": "^0.6.3",
     "sqlite": "^5.1.1",
     "sqlite3": "^6.0.1"
   },

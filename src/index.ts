@@ -2,21 +2,25 @@ import { serve } from "@hono/node-server";
 import { Hono } from "hono";
 import { createEventFromReq } from "./helpers/createEventFromReq.js";
 import { openDb } from "./helpers/db.js";
+import { AI } from "./helpers/ai.js";
 
 // open DB
 const db = await openDb();
 
 // attempt Migrations
 await db.migrate();
-await db.run(
-  "INSERT INTO Event (message, dateTime, severity) VALUES (?, ?, ?)",
-  "test",
-  new Date(),
-  "NORMAL",
-);
-const result = await db.all("SELECT * FROM Event");
+// await db.run(
+//   "INSERT INTO Event (message, dateTime, severity) VALUES (?, ?, ?)",
+//   "test",
+//   new Date(),
+//   "NORMAL",
+// );
+// const result = await db.all("SELECT * FROM Event");
 
-console.log(result);
+// console.log(result);
+
+// init AI
+const ai = new AI("llama3.2:3b");
 const app = new Hono();
 
 // TODO:
@@ -42,7 +46,10 @@ app.post("/push", async (c) => {
   return;
 });
 
-app.get("/", (c) => {
+app.get("/", async (c) => {
+  // TODO integrate with scheduler for time
+  const events = await db.all("SELECT * FROM Event");
+  await ai.summarize(events);
   return c.text("Hello Hono!");
 });
 
