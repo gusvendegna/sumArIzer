@@ -1,12 +1,15 @@
 import type { PushEvent } from "../types/event.ts";
 import { Ollama } from "ollama";
+import 'dotenv/config'
+
+const OLLAMA_URL = process.env.OLLAMA_URL;
 
 export class AI {
   private ollama: Ollama;
   private model: string;
 
   constructor(model: string) {
-    this.ollama = new Ollama({ host: "http://10.0.0.7:11434" });
+    this.ollama = new Ollama({ host: OLLAMA_URL });
     this.model = model;
   }
 
@@ -21,64 +24,134 @@ export class AI {
 
   async summarize(events: PushEvent[]): Promise<string> {
     const fullLlmInput = summarizePrompt + JSON.stringify(events);
-    console.log(fullLlmInput);
+    // console.log(fullLlmInput);
     const response = await this.ask(fullLlmInput);
-    console.log(response);
-    return "";
+    // console.log(response);
+    return response;
   }
 
   async determineSeverity(event: PushEvent) {
     let isNormal = true;
 
     const fullLlmInput = determineSeverityPrompt + JSON.stringify(event);
-    const response = await this.ask(fullLlmInput);
-    if (response.includes("WARNING_EVENT")) {
+    const message = await this.ask(fullLlmInput);
+    if (message.includes("WARNING_EVENT")) {
       isNormal = false;
     }
 
     return {
       isNormal,
-      response,
+      message,
     };
   }
 }
 
-const summarizePrompt =
-  `
-  Your only purpose is to sumamrize the given events from various home server related sources.
-  Be as concise as possible, focus on only noteworthy things, and keep your points short.
-  Please use formatting such as larger text and lists where applicable.
-  Here is a template for your response:
+const summarizePrompt = `
+You are an operations analyst for a homelab/server environment.
 
-  Activity Summary ` +
-  new Date().toLocaleString() +
-  `
+Your task is to analyze and summarize a collection of events from various sources (monitoring systems, backups, containers, applications, infrastructure, etc.).
 
-  <short blurb about OVERALL health status>
+Rules:
 
-  Notable Events:
-  - <list of events in highest to lowest severity (use your discretion). include date if relevant. do NOT make anything up>
+Be concise and factual.
+Only report noteworthy events.
+Do not repeat duplicate information.
+Prioritize events by severity and operational impact.
+Ignore routine successful events unless they indicate overall system health.
+Never invent information or infer details not present in the events.
+If information is incomplete, state that it is incomplete.
+If there are no noteworthy events, explicitly say so.
+Use Discord-compatible markdown.
+Emojis may be used sparingly to improve readability.
+Keep individual bullet points short (1-2 sentences max).
 
-  END OF TEMPLATE
+Severity Guidelines:
+🚨 Critical:
 
-  You may modify the template if needed, however your response needs to be relevant and professional.
+Service outages
+Failed backups with no successful backup available
+Data loss risks
+Disk full conditions
+Repeated system failures
 
-  Here are the events:
-  `;
+⚠️ Warning:
+
+Backup failures with recent successful backups
+Container crashes/restarts
+High resource usage
+Network issues
+Authentication failures
+Hardware warnings
+
+ℹ️ Info:
+
+Successful recoveries
+Configuration changes
+New deployments
+Important but non-actionable events
+
+Output Format:
+
+📊 Activity Summary - ${new Date().toLocaleString()}
+
+Overall Health
+<1-2 sentence assessment of the environment. Mention any critical or warning conditions here. If everything appears healthy, state that clearly.>
+
+Notable Events
+[Severity] Event summary
+[Severity] Event summary
+[Severity] Event summary
+Quick Stats
+Critical: X
+Warning: X
+Info: X
+
+If there are no noteworthy events, output:
+
+📊 Activity Summary - ${new Date().toLocaleString()}
+
+Overall Health
+✅ No significant issues detected.
+
+Notable Events
+No noteworthy events during this reporting period.
+
+Events:
+`;
 
 const determineSeverityPrompt = `
-  Your only purpose is to determine whether or not the following event is any sort of failure or warning.
-  That is to say, take no action of this event appears to be normal operating procedure.
+You are an event classifier for a homelab/server environment.
 
-  If you determine that the event is NOT normal, then use the following template in your response:
+Your task is to determine whether an event represents:
 
-  WARNING_EVENT
+* Normal operation
+* A warning condition
+* A failure condition
 
-  <describe the event>
+Classification Rules:
 
-  END OF TEMPLATE
+* Successful backups, completed jobs, routine container restarts, scheduled maintenance, and other expected activity should be considered NORMAL unless there is evidence of a problem.
+* Errors, failures, degraded performance, connectivity issues, resource exhaustion, repeated restarts, hardware warnings, authentication failures, or anything requiring investigation should be considered NOT NORMAL.
+* Do not assume missing information.
+* Do not invent details.
+* Be conservative: if an event appears healthy and expected, classify it as NORMAL.
 
-  you MUST have WARNING_EVENT in your response. If the event is normal, then you do not need to respond at all.
+Output Rules:
 
-  Here is the event:
-  `;
+* If the event is NORMAL, respond with exactly:
+
+NORMAL_EVENT
+
+* If the event is NOT NORMAL, respond with:
+
+WARNING_EVENT
+
+<short description of the issue. you can just repeat the original message>
+
+The first line MUST be either NORMAL_EVENT or WARNING_EVENT.
+Do not include any other text before it.
+Keep descriptions concise.
+
+Event:
+`;
+

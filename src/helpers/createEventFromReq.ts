@@ -2,8 +2,8 @@ import type { Context } from "hono/jsx";
 import type { BlankEnv, BlankInput } from "hono/types";
 
 export async function createEventFromReq(c: any) {
-  let message = "";
-  let severity = "NORMAL";
+  let message = ""; 
+  let severity = "UNKNOWN";
   // console.log(await c.req.text());
   try {
     message = await c.req.text();
