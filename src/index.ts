@@ -63,7 +63,7 @@ app.get("/", async (c) => {
 // helper for generating summaries
 async function computeSummary() {
   // TODO integrate with scheduler for time
-  let events = await db.all("SELECT * FROM Event");
+  let events = await db.all(`SELECT * FROM Event WHERE dateTime >= ?`, new Date().toLocaleString());
   const message = await ai.summarize(events);
   await sendDiscordMessage(message, WEBHOOK_URL)
   return message
@@ -78,7 +78,7 @@ serve(
     port: 3000,
   },
   (info) => {
-    console.log(`Server is running on http://localhost:${info.port}`);
+    console.log(`Server is running on all IPs on port ${info.port}`);
   },
 );
 

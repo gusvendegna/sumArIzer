@@ -1,0 +1,11 @@
+services:
+  summ4r1zer:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: summ4r1zer
+    env_file: 
+      - .env
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
