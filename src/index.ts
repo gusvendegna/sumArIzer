@@ -64,7 +64,11 @@ app.get("/", async (c) => {
 // helper for generating summaries
 async function computeSummary() {
   // TODO integrate with scheduler for time
-  let events = await db.all(`SELECT * FROM Event WHERE dateTime >= ?`, new Date().toLocaleString());
+  let events = await db.all(`
+  SELECT * FROM Event
+  WHERE dateTime >= datetime('now', '-24 hours')
+`);
+console.log(events)
   const message = await ai.summarize(events);
   await sendDiscordMessage(message, WEBHOOK_URL)
   return message
