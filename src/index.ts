@@ -11,6 +11,7 @@ import 'dotenv/config'
 const WEBHOOK_URL = process.env.WEBHOOK_URL || "";
 const MODEL = process.env.MODEL || "llama3.2:3b";
 
+
 // open DB
 const db = await openDb();
 
